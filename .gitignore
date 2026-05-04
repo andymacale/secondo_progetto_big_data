@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Dataset
+data/
+venv/
+
+# Hadoop, Hive & Spark temporary files and local metastores
+spark-warehouse/
+metastore_db/
+derby.log
+*.parquet.crc
+*.csv.crc
+_SUCCESS
