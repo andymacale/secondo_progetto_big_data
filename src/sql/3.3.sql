@@ -1,12 +1,3 @@
-use flights_project;
-
-set hive.exec.parallel=true;
-set mapreduce.job.reduces=4;
-set hive.optimize.ppd=true;
-set hive.vectorized.execution.enabled=true;
-set hive.vectorized.execution.reduce.enabled=true;
-set hive.map.aggr=true;
-
 with aeroporto_stat as(
     select origin,
            round((avg(case when cancelled = 0 then dep_delay end)), 2) as ritardo_medio_complessivo

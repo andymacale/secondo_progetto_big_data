@@ -1,12 +1,3 @@
-use flights_project;
-
-set hive.exec.parallel=true;
-set mapreduce.job.reduces=4;
-set hive.optimize.ppd=true; 
-set hive.vectorized.execution.enabled=true;
-set hive.vectorized.execution.reduce.enabled=true;
-set hive.map.aggr=true;
-
 select
     op_unique_carrier as codice,
     origin as aeroporto_partenza,

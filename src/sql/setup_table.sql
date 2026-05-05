@@ -1,5 +1,5 @@
-create database if not exists flights_project;
-use flights_project;
+create database if not exists ${var:db};
+use ${var:db};
 
 drop table if exists flights;
 
@@ -21,7 +21,7 @@ create external table if not exists flights (
     late_aircraft_delay bigint
 )
 stored as parquet
-location '/user/andy/data/flights_project';
+location '${var:path}';
 
 msck repair table flights;
 
