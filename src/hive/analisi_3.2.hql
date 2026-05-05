@@ -14,7 +14,7 @@ with cause_ritardi as(
 
     union all
 
-    select origin, month, 'Weather' as causa, sum(wheather_delay) as minuti_totali
+    select origin, month, 'Weather' as causa, sum(weather_delay) as minuti_totali
     from flights where cancelled = 0 group by origin, month
 
     union all
@@ -33,9 +33,17 @@ with cause_ritardi as(
     from flights where cancelled = 0 group by origin, month
 ),
 classifica_cause as (
-    select origin, month, causa, minuti_totali
-        row_number() over(partition by origin, month order by minuti_totali desc) as ranking
+    select origin, month, causa, minuti_totali,
+           concat(causa, ' (', cast(minuti_totali as string), ' min)') as cause_desc,
+           row_number() over(partition by origin, month order by minuti_totali desc) as ranking
     from cause_ritardi
+),
+top_3_cause_aggregate as (
+    select origin, month,
+           collect_list(cause_desc) as cause_maggiori
+    from classifica_cause
+    where ranking <= 3
+    group by origin, month
 )
 
 -- row number assegna un numero progressivo (1, 2, 3...) a ogni riga
@@ -45,7 +53,7 @@ select f.origin as aeroporto_partenza,
        sum(case when f.cancelled = 0 and f.dep_delay < 15.0 then 1 else 0 end) as numero_ritardi_basso,
        sum(case when f.cancelled = 0 and f.dep_delay between 15.0 and 60.0 then 1 else 0 end) as numero_ritardi_medio,
        sum(case when f.cancelled = 0 and f.dep_delay > 60.0 then 1 else 0 end) as numero_ritardo_alto,
-       collect_list(case when c.ranking <= 3 then concat(c.causa, ' (', c.minuti_totali, ' min')) end) as cause_maggiori
+       coalesce(max(t.cause_maggiori), array()) as cause_maggiori
 from flights f
-left join classifica_cause c on f.origin = c.origin and f.month = c.month
+left join top_3_cause_aggregate t on f.origin = t.origin and f.month = t.month
 group by origin, month
