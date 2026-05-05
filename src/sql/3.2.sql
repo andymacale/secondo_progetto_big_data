@@ -1,3 +1,4 @@
+use ${db};
 with cause_ritardi as(
 
     select origin, month, 'Carrier' as causa, sum(carrier_delay) as minuti_totali

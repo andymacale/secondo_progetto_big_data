@@ -1,3 +1,4 @@
+use ${db};
 with aeroporto_stat as(
     select origin,
            round((avg(case when cancelled = 0 then dep_delay end)), 2) as ritardo_medio_complessivo

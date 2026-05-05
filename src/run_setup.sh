@@ -1,8 +1,7 @@
 #!/bin/bash
-# Ci assicuriamo di essere nella cartella src
 source ./hive/config.sh
 
-PERCENTUALI=("10" "25" "50" "75" "100")
+PERCENTUALI=("10" "25" "50" "75" "100" "150")
 ANALISI=("3.1" "3.2" "3.3")
 
 echo "percentuale,motore,analisi,tempo_secondi,status" > "$RESULT_CSV"
