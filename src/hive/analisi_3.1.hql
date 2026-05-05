@@ -1,22 +1,20 @@
 use flights_project;
 
 set hive.exec.parallel=true;
-set mapreduce.job.reduces=4; -- Sfruttiamo i core del tuo Victus
+set mapreduce.job.reduces=4;
+set hive.optimize.ppd=true; 
+set hive.vectorized.execution.enabled=true;
+set hive.vectorized.execution.reduce.enabled=true;
+set hive.map.aggr=true;
 
-select 
-    op_unique_carrier as vettore,
+select
+    op_unique_carrier as codice,
     origin as aeroporto_partenza,
-    count(*) as totale_voli,
-    round(avg(arr_delay), 2) as ritardo_medio_arrivo,
-    sum(case when arr_delay > 15 then 1 else 0 end) AS voli_in_ritardo_grave
-from 
-    flights
-where 
-    cancelled = 0 and diverted = 0
-group by 
-    op_unique_carrier, 
-    origin
-having 
-    totale_voli > 100 
-order by 
-    ritardo_medio_arrivo desc;
+    count(*) as numero_voli,
+    min(case when cancelled = 0 and arr_delay >= 1.0 then arr_delay end) as ritardo_minimo,
+    max(arr_delay) as ritardo_massimo,
+    round(avg(case when cancelled = 0 then greatest(0, coalesce(arr_delay, 0)) end), 2) as ritardo_medio,
+    round(sum(case when cancelled = 1 then 1.0 else 0.0)/count(*)*100), 2) as tasso_cancellazione,
+    month as mese
+from flights
+group by op_unique_carrier, origin, month

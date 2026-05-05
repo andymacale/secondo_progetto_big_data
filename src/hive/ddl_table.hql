@@ -13,7 +13,6 @@ create external table if not exists flights (
     dep_delay double,
     arr_delay double,
     cancelled bigint,
-    diverted bigint,
     cancellation_code string,
     carrier_delay bigint,
     weather_delay bigint,
