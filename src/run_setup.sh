@@ -1,10 +1,24 @@
 #!/bin/bash
-source ./hive/config.sh
+
+source ~/.bashrc
 
 PERCENTUALI=("10" "25" "50" "75" "100" "150")
 ANALISI=("3.1" "3.2" "3.3")
+DB_NAME="flights_project"
+RESULT_CSV="../data/benchmark_results.csv"
+SQL_DIR="../sql"
 
-echo "percentuale,motore,analisi,tempo_secondi,status" > "$RESULT_CSV"
+HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf mapreduce.job.reduces=4 -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.vectorized.execution.reduce.enabled=true"
+
+trap stop_hadoop EXIT
+
+echo ">>> Avvio ambiente Hadoop..."
+start_hadoop
+
+
+if [ ! -f "$RESULT_CSV" ]; then
+    echo "percentuale,motore,analisi,tempo_secondi,status" > "$RESULT_CSV"
+fi
 
 for PERC in "${PERCENTUALI[@]}"
 do
@@ -14,6 +28,7 @@ do
     
     CURRENT_PATH="/user/andy/data/flights_${PERC}"
 
+    echo ">>> Preparazione Tabella Hive per volume ${PERC}%..."
     hive $HIVE_SETTINGS --hivevar db=$DB_NAME --hivevar path=$CURRENT_PATH \
          -e "drop table if exists ${DB_NAME}.flights; $(cat $SQL_DIR/setup_table.sql)" > /dev/null 2>&1
 
@@ -29,7 +44,7 @@ do
         
         echo "Esecuzione Spark SQL - Analisi ${ANALISI_ID}..."
         START=$(date +%s)
-        spark-submit --master local[*] ./spark_sql/spark_sql_launcher.py "$SQL_DIR/${ANALISI_ID}.sql" "$DB_NAME" > /dev/null 2>&1
+        spark-submit --master local[*] ./spark_sql/launcher.py "$SQL_DIR/${ANALISI_ID}.sql" "$DB_NAME" > /dev/null 2>&1
         STATUS=$?
         END=$(date +%s)
         echo "${PERC},Spark_SQL,${ANALISI_ID},$((END - START)),${STATUS}" >> "$RESULT_CSV"
