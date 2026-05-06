@@ -1,7 +1,6 @@
 import sys
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-import pandas as pd
 
 def main():
     if len(sys.argv) < 2:

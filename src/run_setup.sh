@@ -2,7 +2,7 @@
 
 PROJECT_DIR="$HOME/Documenti/secondo_progetto_big_data"
 SCRIPT_DIR="$PROJECT_DIR/src"
-RESULT_CSV="$PROJECT_DIR/data/benchmark_results.csv"
+RESULT_CSV="$PROJECT_DIR/results/benchmark_results.csv"
 DB_NAME="flights_project"
 SQL_DIR="$SCRIPT_DIR/sql"
 
@@ -41,7 +41,6 @@ start_hadoop
 echo ">>> Pulizia HDFS e svuotamento CSV/Log locali..."
 hdfs dfs -rm -r -f /user/andy/data/flights_[0-9]* 2>/dev/null
 
-echo "percentuale,motore,analisi,tempo_secondi,status" > "$RESULT_CSV"
 rm -f "$PROJECT_DIR/results"/*.csv 
 > "$SCRIPT_DIR/spark_sql_error.log"
 > "$SCRIPT_DIR/spark_core_error.log"
@@ -66,9 +65,11 @@ do
     fi
 done
 
+
 echo "===================================================="
 echo ">>> FASE 2: ESECUZIONE BENCHMARK"
 echo "===================================================="
+echo "percentuale,motore,analisi,tempo_secondi,status" > "$RESULT_CSV"
 for PERC in "${PERCENTUALI[@]}"
 do
     echo "----------------------------------------------------"

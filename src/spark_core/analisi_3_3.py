@@ -2,7 +2,6 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import Window
-import pandas as pd
 
 
 def main():
@@ -52,12 +51,7 @@ def main():
 
         output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_3_{perc}"
         
-        final_df_csv = final_df.withColumn(
-            "cause_maggiori", 
-            F.concat_ws(", ", F.col("cause_maggiori"))
-        )
-
-        final_df_csv.coalesce(1) \
+        final_result.coalesce(1) \
                 .write \
                 .mode("overwrite") \
                 .option("header", "true") \
