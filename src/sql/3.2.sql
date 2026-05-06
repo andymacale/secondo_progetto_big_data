@@ -1,28 +1,27 @@
-use ${db};
 with cause_ritardi as(
 
     select origin, month, 'Carrier' as causa, sum(carrier_delay) as minuti_totali
-    from flights where cancelled = 0 group by origin, month
+    from flights_project.flights where cancelled = 0 group by origin, month
 
     union all
 
     select origin, month, 'Weather' as causa, sum(weather_delay) as minuti_totali
-    from flights where cancelled = 0 group by origin, month
+    from flights_project.flights where cancelled = 0 group by origin, month
 
     union all
     
     select origin, month, 'NAS' as causa, sum(nas_delay) as minuti_totali
-    from flights where cancelled = 0 group by origin, month
+    from flights_project.flights where cancelled = 0 group by origin, month
 
     union all
     
     select origin, month, 'Security' as causa, sum(security_delay) as minuti_totali
-    from flights where cancelled = 0 group by origin, month
+    from flights_project.flights where cancelled = 0 group by origin, month
 
     union all
 
     select origin, month, 'Late Aircraft' as causa, sum(late_aircraft_delay) as minuti_totali
-    from flights where cancelled = 0 group by origin, month
+    from flights_project.flights where cancelled = 0 group by origin, month
 ),
 classifica_cause as (
     select origin, month, causa, minuti_totali,
@@ -46,6 +45,6 @@ select f.origin as aeroporto_partenza,
        sum(case when f.cancelled = 0 and f.dep_delay between 15.0 and 60.0 then 1 else 0 end) as numero_ritardi_medio,
        sum(case when f.cancelled = 0 and f.dep_delay > 60.0 then 1 else 0 end) as numero_ritardo_alto,
        coalesce(max(t.cause_maggiori), array()) as cause_maggiori
-from flights f
+from flights_project.flights f
 left join top_3_cause_aggregate t on f.origin = t.origin and f.month = t.month
-group by origin, month
+group by f.origin, f.month

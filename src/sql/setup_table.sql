@@ -1,9 +1,8 @@
-create database if not exists ${var:db};
-use ${var:db};
+create database if not exists flights_project;
 
-drop table if exists flights;
+drop table if exists flights_project.flights;
 
-create external table if not exists flights (
+create external table if not exists flights_project.flights (
     month bigint,
     fl_date timestamp,
     op_unique_carrier string,
@@ -21,8 +20,4 @@ create external table if not exists flights (
     late_aircraft_delay bigint
 )
 stored as parquet
-location '${var:path}';
-
-msck repair table flights;
-
-select count(*) as totale_record from flights;
+location '${path}';

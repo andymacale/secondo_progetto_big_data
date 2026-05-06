@@ -1,62 +1,104 @@
 #!/bin/bash
 
-source ~/.bashrc
+PROJECT_DIR="$HOME/Documenti/secondo_progetto_big_data"
+SCRIPT_DIR="$PROJECT_DIR/src"
+RESULT_CSV="$PROJECT_DIR/data/benchmark_results.csv"
+DB_NAME="flights_project"
+SQL_DIR="$SCRIPT_DIR/sql"
+
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export SPARK_LOCAL_IP="127.0.0.1"
+
+start_hadoop() {
+    echo "===================================================="
+    echo ">>> Avvio HDFS e YARN..."
+    $HADOOP_HOME/sbin/start-dfs.sh
+    $HADOOP_HOME/sbin/start-yarn.sh
+    echo ">>> Attesa uscita HDFS dal Safe Mode..."
+    hdfs dfsadmin -safemode wait
+    echo "===================================================="
+}
+
+stop_hadoop() {
+    echo "===================================================="
+    echo ">>> Spegnimento Ambiente Hadoop..."
+    $HADOOP_HOME/sbin/stop-yarn.sh
+    $HADOOP_HOME/sbin/stop-dfs.sh
+    echo "===================================================="
+}
 
 PERCENTUALI=("10" "25" "50" "75" "100" "150")
 ANALISI=("3.1" "3.2" "3.3")
-DB_NAME="flights_project"
-RESULT_CSV="../data/benchmark_results.csv"
-SQL_DIR="../sql"
 
-HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf mapreduce.job.reduces=4 -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.vectorized.execution.reduce.enabled=true"
+#HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf mapreduce.job.reduces=4 -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.cli.print.header=true"
+HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.cli.print.header=true -hiveconf mapreduce.job.reduces=-1 -hiveconf hive.exec.reducers.bytes.per.reducer=33554432 -hiveconf hive.exec.reducers.max=8"
 
 trap stop_hadoop EXIT
 
 echo ">>> Avvio ambiente Hadoop..."
 start_hadoop
 
+echo ">>> Pulizia HDFS e svuotamento CSV/Log locali..."
+hdfs dfs -rm -r -f /user/andy/data/flights_[0-9]* 2>/dev/null
 
-if [ ! -f "$RESULT_CSV" ]; then
-    echo "percentuale,motore,analisi,tempo_secondi,status" > "$RESULT_CSV"
-fi
+echo "percentuale,motore,analisi,tempo_secondi,status" > "$RESULT_CSV"
+rm -f "$PROJECT_DIR/results"/*.csv 
+> "$SCRIPT_DIR/spark_sql_error.log"
+> "$SCRIPT_DIR/spark_core_error.log"
+> "$SCRIPT_DIR/hive_error.log"
 
+echo "===================================================="
+echo ">>> FASE 1: CARICAMENTO DATI DA LOCALE A HDFS"
+echo "===================================================="
 for PERC in "${PERCENTUALI[@]}"
 do
-    echo "===================================================="
+    CURRENT_PATH="/user/andy/data/flights_${PERC}"
+    echo ">>> Preparazione $CURRENT_PATH..."
+    
+    hdfs dfs -mkdir -p "$CURRENT_PATH"
+    
+    hdfs dfs -put -f "$PROJECT_DIR/data/dataset_${PERC}.parquet" "$CURRENT_PATH/data.parquet"
+    
+    if [ $? -eq 0 ]; then
+        echo "[OK] Caricato dataset_${PERC}.parquet"
+    else
+        echo "[ERRORE] Impossibile caricare dataset_${PERC}.parquet"
+    fi
+done
+
+echo "===================================================="
+echo ">>> FASE 2: ESECUZIONE BENCHMARK"
+echo "===================================================="
+for PERC in "${PERCENTUALI[@]}"
+do
+    echo "----------------------------------------------------"
     echo ">>> TEST VOLUME: ${PERC}% dei dati"
-    echo "===================================================="
+    echo "----------------------------------------------------"
     
     CURRENT_PATH="/user/andy/data/flights_${PERC}"
 
-    echo ">>> Preparazione Tabella Hive per volume ${PERC}%..."
-    hive $HIVE_SETTINGS --hivevar db=$DB_NAME --hivevar path=$CURRENT_PATH \
-         -e "drop table if exists ${DB_NAME}.flights; $(cat $SQL_DIR/setup_table.sql)" > /dev/null 2>&1
+    echo ">>> Configurazione Tabella Hive..."
+    hive $HIVE_SETTINGS --hivevar path="$CURRENT_PATH" -f "$SQL_DIR/setup_table.sql" > /dev/null 2>&1
 
     for ANALISI_ID in "${ANALISI[@]}"
     do
         echo "Esecuzione Hive - Analisi ${ANALISI_ID}..."
         START=$(date +%s)
-        hive $HIVE_SETTINGS -f "$SQL_DIR/${ANALISI_ID}.sql" > /dev/null 2>&1
-        STATUS=$?
-        END=$(date +%s)
-        echo "${PERC},Hive,${ANALISI_ID},$((END - START)),${STATUS}" >> "$RESULT_CSV"
+        hive $HIVE_SETTINGS --hivevar db=$DB_NAME -f "$SQL_DIR/${ANALISI_ID}.sql" | sed 's/\t/,/g; s/'${DB_NAME}'\.//g' > "$PROJECT_DIR/results/hive_res_${ANALISI_ID}_${PERC}.csv" 2> "$SCRIPT_DIR/hive_error.log"
+        echo "${PERC},Hive,${ANALISI_ID},$(( $(date +%s) - START )),$?" >> "$RESULT_CSV"
 
-        
         echo "Esecuzione Spark SQL - Analisi ${ANALISI_ID}..."
         START=$(date +%s)
-        spark-submit --master local[*] ./spark_sql/launcher.py "$SQL_DIR/${ANALISI_ID}.sql" "$DB_NAME" > /dev/null 2>&1
-        STATUS=$?
-        END=$(date +%s)
-        echo "${PERC},Spark_SQL,${ANALISI_ID},$((END - START)),${STATUS}" >> "$RESULT_CSV"
+        spark-submit --master local[*] "$SCRIPT_DIR/spark_sql/launcher.py" "$SQL_DIR/${ANALISI_ID}.sql" "$DB_NAME" | sed 's/\t/,/g' > "$PROJECT_DIR/results/spark_sql_${ANALISI_ID}_${PERC}.csv" 2> "$SCRIPT_DIR/spark_sql_error.log"
+        echo "${PERC},Spark_SQL,${ANALISI_ID},$(( $(date +%s) - START )),$?" >> "$RESULT_CSV"
 
-        
         echo "Esecuzione Spark Core - Analisi ${ANALISI_ID}..."
         START=$(date +%s)
-        spark-submit --master local[*] "./spark_core/analisi_${ANALISI_ID//./_}.py" "$CURRENT_PATH" > /dev/null 2>&1
-        STATUS=$?
-        END=$(date +%s)
-        echo "${PERC},Spark_Core,${ANALISI_ID},$((END - START)),${STATUS}" >> "$RESULT_CSV"
+        spark-submit --master local[*] "$SCRIPT_DIR/spark_core/analisi_${ANALISI_ID//./_}.py" "$CURRENT_PATH"  2> "$SCRIPT_DIR/spark_core_error.log"
+        echo "${PERC},Spark_Core,${ANALISI_ID},$(( $(date +%s) - START )),$?" >> "$RESULT_CSV"
+        mv "$PROJECT_DIR/results/spark_core_${ANALISI_ID//./_}_${PERC}/part-"*.csv "$PROJECT_DIR/results/spark_core_${ANALISI_ID}_${PERC}.csv" 2>/dev/null
+        rm -rf "$PROJECT_DIR/results/spark_core_${ANALISI_ID//./_}_${PERC}"
     done
 done
 
-echo "Tutti i test sono completati. Risultati in $RESULT_CSV"
+echo "Test completati. Risultati in $RESULT_CSV"

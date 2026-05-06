@@ -2,6 +2,8 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import Window
+import pandas as pd
+
 
 def main():
     if len(sys.argv) < 2:
@@ -10,12 +12,16 @@ def main():
 
     hdfs_path = sys.argv[1]
 
+    perc = hdfs_path.split('_')[-1]
+
     spark = SparkSession.builder \
             .appName("SparkCore_3_2") \
             .getOrCreate()
 
     try:
-        df = spark.read.parquet(hdfs_path)
+        df = spark.read.option("mergeSchema", "true").parquet(hdfs_path)
+        if df.rdd.isEmpty():
+            raise Exception(f"La cartella {hdfs_path} e' vuota o non contiene Parquet validi!")
 
         conta = df.groupBy("origin", "month").agg(
                 F.sum(
@@ -59,7 +65,15 @@ def main():
             "cause_maggiori"
         )
 
-        final_df.collect()
+        output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_2_{perc}"
+        
+        final_df.coalesce(1) \
+                .write \
+                .mode("overwrite") \
+                .option("header", "true") \
+                .csv(output_dir)
+                
+        print(f"Salvataggio Spark completato in: {output_dir}")
 
     except Exception as e:
         print(f"ERRORE SparkCore_3_2: {e}")
