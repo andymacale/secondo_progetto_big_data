@@ -228,3 +228,4 @@ derby.log
 data/*.csv
 *.csv.crc
 _SUCCESS
+*.pub
