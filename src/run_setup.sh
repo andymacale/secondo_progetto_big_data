@@ -31,8 +31,9 @@ PERCENTUALI=("10" "25" "50" "75" "100" "150")
 ANALISI=("3.1" "3.2" "3.3")
 
 #HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf mapreduce.job.reduces=4 -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.cli.print.header=true"
-HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.cli.print.header=true -hiveconf mapreduce.job.reduces=-1 -hiveconf hive.exec.reducers.bytes.per.reducer=33554432 -hiveconf hive.exec.reducers.max=8"
-
+#HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.cli.print.header=true -hiveconf mapreduce.job.reduces=-1 -hiveconf hive.exec.reducers.bytes.per.reducer=33554432 -hiveconf hive.exec.reducers.max=8"
+#HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf hive.vectorized.execution.enabled=true -hiveconf hive.cli.print.header=true -hiveconf mapreduce.job.reduces=-1 -hiveconf hive.exec.reducers.bytes.per.reducer=33554432 -hiveconf hive.exec.reducers.max=8 -hiveconf hive.parquet.use.column.names=true -hiveconf parquet.column.index.access=false"
+HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf hive.vectorized.execution.enabled=false -hiveconf hive.cli.print.header=true -hiveconf mapreduce.job.reduces=-1 -hiveconf hive.exec.reducers.bytes.per.reducer=33554432 -hiveconf hive.exec.reducers.max=8 -hiveconf hive.parquet.use.column.names=true -hiveconf parquet.column.index.access=false"
 trap stop_hadoop EXIT
 
 echo ">>> Avvio ambiente Hadoop..."

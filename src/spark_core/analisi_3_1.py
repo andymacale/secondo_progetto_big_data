@@ -46,7 +46,7 @@ def main():
             F.col("ritardo_medio"),
             F.col("tasso_cancellazione"),
             F.col("month").alias("mese")
-        )
+        ).orderBy("codice", "aeroporto_partenza", "mese")
 
         output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_1_{perc}"
         

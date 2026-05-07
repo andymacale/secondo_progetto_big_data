@@ -47,7 +47,8 @@ def main():
             "ritardo_medio_arrivo",
             "tasso_cancellazione",
             F.round(F.col("ritardo_medio_partenza") - F.col("ritardo_medio_complessivo"), 2).alias("differenza")
-        ).withColumn("classifica", F.rank().over(window_spec))
+        ).withColumn("classifica", F.rank().over(window_spec)) \
+        .orderBy("aeroporto_partenza", "compagnia", "classifica")
 
         output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_3_{perc}"
         

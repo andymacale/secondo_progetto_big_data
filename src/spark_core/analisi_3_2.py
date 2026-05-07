@@ -34,13 +34,24 @@ def main():
                     .otherwise(0)).alias("numero_ritardi_alto"),       
         )
 
-        cause = ['carrier_delay', 'weather_delay', 'nas_delay', 'security_delay', 'late_aircraft_delay']
+        cause_mapping = {
+            'carrier_delay': 'Carrier',
+            'weather_delay': 'Weather',
+            'nas_delay': 'NAS',
+            'security_delay': 'Security',
+            'late_aircraft_delay': 'Late Aircraft'
+        }
+        
         cause_dfs = []
 
-        for causa in cause:
+        for col_name, display_name in cause_mapping.items():
             riga = df.where("cancelled = 0").groupBy("origin", "month") \
-                    .agg(F.sum(causa).alias("minuti_totali")) \
-                    .withColumn("causa", F.lit(causa))
+                    .agg(F.sum(col_name).cast("int").alias("minuti_totali")) \
+                    .withColumn("causa", F.concat(
+                        F.lit(f"{display_name} ("), 
+                        F.col("minuti_totali"), 
+                        F.lit(" min)")
+                    ))
             cause_dfs.append(riga)
 
         unione = cause_dfs[0]
@@ -55,22 +66,22 @@ def main():
 
         final = conta.join(ranked, ["origin", "month"], "left")
 
-        final_df = final.select(
+        final_df_csv = final.select(
             F.col("origin").alias("aeroporto_partenza"),
             F.col("month").alias("mese"),
             "numero_ritardi_basso", 
             "numero_ritardi_medio",
             "numero_ritardi_alto", 
-            "cause_maggiori"
-        )
+            F.concat(
+                F.lit("['"), 
+                F.concat_ws("', '", F.col("cause_maggiori")), 
+                F.lit("']")
+            ).alias("cause_maggiori")
+        ).orderBy("aeroporto_partenza", "mese")
+
 
         output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_2_{perc}"
         
-        final_df_csv = final_df.withColumn(
-            "cause_maggiori", 
-            F.concat_ws(", ", F.col("cause_maggiori"))
-        )
-
         final_df_csv.coalesce(1) \
                 .write \
                 .mode("overwrite") \
