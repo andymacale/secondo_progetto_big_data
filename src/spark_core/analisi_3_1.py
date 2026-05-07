@@ -48,7 +48,8 @@ def main():
             F.col("month").alias("mese")
         ).orderBy("codice", "aeroporto_partenza", "mese")
 
-        output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_1_{perc}"
+        #output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_1_{perc}"
+        output_dir = f"hdfs:///user/hadoop/results_spark_core_3_1_{perc}"
         
         final_df.coalesce(1) \
                 .write \

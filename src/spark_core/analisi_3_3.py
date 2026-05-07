@@ -50,7 +50,8 @@ def main():
         ).withColumn("classifica", F.rank().over(window_spec)) \
         .orderBy("aeroporto_partenza", "compagnia", "classifica")
 
-        output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_3_{perc}"
+        #output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_3_{perc}"
+        output_dir = f"hdfs:///user/hadoop/results_spark_core_3_3_{perc}"
         
         final_result.coalesce(1) \
                 .write \

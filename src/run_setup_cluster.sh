@@ -1,30 +1,10 @@
 #!/bin/bash
 
-PROJECT_DIR="$HOME/Documenti/secondo_progetto_big_data"
+PROJECT_DIR="$HOME/secondo_progetto_big_data"
 SCRIPT_DIR="$PROJECT_DIR/src"
 RESULT_CSV="$PROJECT_DIR/results_cluster/benchmark_results.csv"
 DB_NAME="flights_project"
 SQL_DIR="$SCRIPT_DIR/sql"
-
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-
-start_hadoop() {
-    echo "===================================================="
-    echo ">>> Avvio HDFS e YARN..."
-    $HADOOP_HOME/sbin/start-dfs.sh
-    $HADOOP_HOME/sbin/start-yarn.sh
-    echo ">>> Attesa uscita HDFS dal Safe Mode..."
-    hdfs dfsadmin -safemode wait
-    echo "===================================================="
-}
-
-stop_hadoop() {
-    echo "===================================================="
-    echo ">>> Spegnimento Ambiente Hadoop..."
-    $HADOOP_HOME/sbin/stop-yarn.sh
-    $HADOOP_HOME/sbin/stop-dfs.sh
-    echo "===================================================="
-}
 
 PERCENTUALI=("10" "25" "50" "75" "100" "150")
 ANALISI=("3.1" "3.2" "3.3")
@@ -32,25 +12,22 @@ ANALISI=("3.1" "3.2" "3.3")
 HIVE_SETTINGS="-hiveconf hive.exec.parallel=true -hiveconf hive.vectorized.execution.enabled=false -hiveconf hive.cli.print.header=true -hiveconf mapreduce.job.reduces=-1 -hiveconf hive.exec.reducers.bytes.per.reducer=33554432 -hiveconf hive.exec.reducers.max=8 -hiveconf hive.parquet.use.column.names=true -hiveconf parquet.column.index.access=false"
 HIVE_LOGGER="--hiveconf hive.root.logger=WARN,console"
 
-trap stop_hadoop EXIT
-
-echo ">>> Avvio ambiente Hadoop..."
-start_hadoop
+# Avvio e stop manuale disabilitati per Amazon EMR
+echo ">>> Ambiente Hadoop gestito da EMR rilevato."
 
 echo ">>> Pulizia HDFS e svuotamento CSV/Log locali..."
-hdfs dfs -rm -r -f /user/andy/data/flights_[0-9]* 2>/dev/null
+# Aggiornato il percorso HDFS per usare l'utente 'hadoop'
+hdfs dfs -rm -r -f /user/hadoop/data/flights_[0-9]* 2>/dev/null
 
 rm -f "$PROJECT_DIR/results_cluster"/*.csv 
-> "$SCRIPT_DIR/spark_sql_error.log"
-> "$SCRIPT_DIR/spark_core_error.log"
-> "$SCRIPT_DIR/hive_error.log"
 
 echo "===================================================="
 echo ">>> FASE 1: CARICAMENTO DATI DA LOCALE A HDFS"
 echo "===================================================="
 for PERC in "${PERCENTUALI[@]}"
 do
-    CURRENT_PATH="/user/andy/data/flights_${PERC}"
+    # Aggiornato il percorso HDFS per usare l'utente 'hadoop'
+    CURRENT_PATH="/user/hadoop/data/flights_${PERC}"
     echo ">>> Preparazione $CURRENT_PATH..."
     
     hdfs dfs -mkdir -p "$CURRENT_PATH"
@@ -75,7 +52,7 @@ do
     echo ">>> TEST VOLUME: ${PERC}% dei dati"
     echo "----------------------------------------------------"
     
-    CURRENT_PATH="/user/andy/data/flights_${PERC}"
+    CURRENT_PATH="/user/hadoop/data/flights_${PERC}"
 
     echo ">>> Configurazione Tabella Hive..."
     hive $HIVE_LOGGER $HIVE_SETTINGS --hivevar path="$CURRENT_PATH" -f "$SQL_DIR/setup_table.sql" > /dev/null 2>&1
@@ -96,8 +73,12 @@ do
         START=$(date +%s)
         spark-submit --master yarn --deploy-mode client "$SCRIPT_DIR/spark_core/analisi_${ANALISI_ID//./_}.py" "$CURRENT_PATH"  2> "$SCRIPT_DIR/spark_core_error.log"
         echo "${PERC},Spark_Core,${ANALISI_ID},$(( $(date +%s) - START )),$?" >> "$RESULT_CSV"
-        mv "$PROJECT_DIR/results_cluster/spark_core_${ANALISI_ID//./_}_${PERC}/part-"*.csv "$PROJECT_DIR/results_cluster/spark_core_${ANALISI_ID}_${PERC}.csv" 2>/dev/null
-        rm -rf "$PROJECT_DIR/results_cluster/spark_core_${ANALISI_ID//./_}_${PERC}"
+        
+        HDFS_RESULT_PATH="hdfs:///user/hadoop/results_spark_core_${ANALISI_ID//./_}_${PERC}"
+        LOCAL_RESULT_PATH="$PROJECT_DIR/results_cluster/spark_core_${ANALISI_ID}_${PERC}.csv"
+        
+        hdfs dfs -getmerge "$HDFS_RESULT_PATH" "$LOCAL_RESULT_PATH" 2>/dev/null
+        hdfs dfs -rm -r -skipTrash "$HDFS_RESULT_PATH" 2>/dev/null
     done
 done
 

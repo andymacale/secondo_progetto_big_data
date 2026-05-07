@@ -80,7 +80,8 @@ def main():
         ).orderBy("aeroporto_partenza", "mese")
 
 
-        output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_2_{perc}"
+        #output_dir = f"file:///home/andy/Documenti/secondo_progetto_big_data/results/spark_core_3_2_{perc}"
+        output_dir = f"hdfs:///user/hadoop/results_spark_core_3_2_{perc}"
         
         final_df_csv.coalesce(1) \
                 .write \
