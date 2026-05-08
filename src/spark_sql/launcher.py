@@ -23,7 +23,6 @@ def main():
                 .config("spark.sql.adaptive.enabled", "true") \
                 .getOrCreate()
 
-        # Settiamo il log level a ERROR per evitare che i messaggi INFO sporchino il CSV
         spark.sparkContext.setLogLevel("ERROR")
 
         spark.sql(f"use {db_name}")
