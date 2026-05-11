@@ -5,16 +5,15 @@ Questo repository contiene il codice sorgente e la documentazione relativi al se
 
 ### 1. Oggetto del Progetto
 L'obiettivo del progetto è sperimentare l'uso comparativo di diverse tecnologie per l'analisi di big data su un dataset reale di grandi dimensioni. In particolare, il progetto si concentra su:
-- Progettazione delle elaborazioni
-- Preparazione e pulizia dei dati
+- preparazione e pulizia dei dati
+- implementazione delle interrogazioni
 - Confronto tra diverse tecnologie di analisi
-- Efficienza e scalabilità delle soluzioni realizzate
+- esecuzione ed analisi
 
 Il dataset utilizzato è il **Flight Delay Dataset del 2024** (disponibile su Kaggle), che contiene informazioni relative a voli, ritardi, cancellazioni e altri attributi operativi.
 
 ### 2. Tecnologie Utilizzate
 Le analisi sono state implementate e confrontate utilizzando una combinazione delle seguenti tecnologie:
-- **MapReduce**
 - **Hive**
 - **Spark Core**
 - **Spark SQL**
@@ -44,14 +43,11 @@ Le specifiche dettagliate della preparazione dei dati sono descritte nel rapport
 Il repository contiene gli script necessari per l'esecuzione delle analisi sia in ambiente locale che su cluster.
 
 **Configurazione e avvio:**
+- `src/run_setup.sh`: Script per l'avvio in locale.
 - `src/run_setup_cluster.sh`: Script per l'avvio e la configurazione dell'ambiente cluster (HDFS/YARN).
 - Seguire le istruzioni aggiuntive fornite per eseguire i singoli job MapReduce, script Hive e job Spark (Core/SQL).
 
 ### 6. Struttura del Repository
 - `src/`: Codice sorgente delle implementazioni suddivise per tecnologia (es. `spark_core`, `spark_sql`, `sql`, ecc.) e script di esecuzione.
-- `results_cluster/`: Directory di output per i risultati e i log delle esecuzioni.
-- Documentazione aggiuntiva e `Rapporto Finale.pdf` contenente le scelte progettuali, i risultati sperimentali, i grafici di scalabilità e i commenti critici.
-
----
-**Data di consegna:** 04/06/2026  
-**Docente:** Prof. Riccardo Torlone
+- `results/`: Directory di output per i risultati in locale.
+- `results_cluster/`: Directory di output per i risultati su cluster.
