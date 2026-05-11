@@ -7,7 +7,6 @@ Questo repository contiene il codice sorgente e la documentazione relativi al se
 L'obiettivo del progetto è sperimentare l'uso comparativo di diverse tecnologie per l'analisi di big data su un dataset reale di grandi dimensioni. In particolare, il progetto si concentra su:
 - preparazione e pulizia dei dati
 - implementazione delle interrogazioni
-- Confronto tra diverse tecnologie di analisi
 - esecuzione ed analisi
 
 Il dataset utilizzato è il **Flight Delay Dataset del 2024** (disponibile su Kaggle), che contiene informazioni relative a voli, ritardi, cancellazioni e altri attributi operativi.
